@@ -6,8 +6,6 @@ A modern desktop application for Optical Character Recognition (OCR) with suppor
 
 ![Application Screenshot](docs/screenshot.png)
 
-## Features | คุณสมบัติ
-
 - 🖼️ Modern and intuitive user interface | อินเตอร์เฟซที่ทันสมัยและใช้งานง่าย
 - 🌏 Support for English and Thai languages | รองรับภาษาอังกฤษและภาษาไทย
 - 🎯 Drag and drop image support | รองรับการลากและวางรูปภาพ
