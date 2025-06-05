@@ -15,15 +15,33 @@ from processors.text_processor import process_ocr_result
 from processors.image_processor import preprocess_image, resize_image_for_display
 from .theme import apply_modern_theme
 
+class RoundedFrame(ttk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        ttk.Frame.__init__(self, parent, *args, **kwargs)
+        self.canvas = tk.Canvas(self, highlightthickness=0, **kwargs)
+        self.canvas.pack(fill='both', expand=True)
+        
+    def round_rectangle(self, radius=20):
+        coords = 0, 0, self.winfo_width()-1, self.winfo_height()-1
+        self.canvas.delete('rounded')
+        self.canvas.create_round_rectangle(coords, radius, fill='white', tags='rounded')
+        
+    def create_round_rectangle(self, coords, r, **kwargs):
+        x1, y1, x2, y2 = coords
+        self.canvas.create_polygon(
+            (x1+r, y1, x2-r, y1, x2, y1, x2, y1+r, x2, y2-r, x2, y2,
+             x2-r, y2, x1+r, y2, x1, y2, x1, y2-r, x1, y1+r, x1, y1),
+            smooth=True, **kwargs)
+
 class ImageOCRApp:
     def __init__(self, root, tesseract_available=False):
         self.root = root
-        self.root.title("Image OCR Application")
+        self.root.title("Modern OCR Application")
         self.root.geometry("1200x800")
-        self.root.minsize(1000, 700)  # Set minimum window size
+        self.root.minsize(1000, 700)
         
         # Apply modern theme
-        self.text_config = apply_modern_theme(self.root)
+        self.text_config, self.colors = apply_modern_theme(self.root)
         
         # Show Tesseract status
         if not tesseract_available:
@@ -38,7 +56,7 @@ class ImageOCRApp:
     def _init_ui(self):
         """Initialize the user interface"""
         # Create main frame with padding
-        self.main_frame = ttk.Frame(self.root)
+        self.main_frame = ttk.Frame(self.root, style="Card.TFrame")
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
         # Configure grid weights for responsive layout
@@ -46,12 +64,12 @@ class ImageOCRApp:
         self.main_frame.grid_columnconfigure(1, weight=1)
         self.main_frame.grid_rowconfigure(0, weight=1)
         
-        # Create left and right frames
-        self.left_frame = ttk.Frame(self.main_frame)
-        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        # Create left and right frames with padding for depth effect
+        self.left_frame = ttk.Frame(self.main_frame, style="Card.TFrame")
+        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10), pady=5)
         
-        self.right_frame = ttk.Frame(self.main_frame)
-        self.right_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        self.right_frame = ttk.Frame(self.main_frame, style="Card.TFrame")
+        self.right_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0), pady=5)
         
         self._create_image_area()
         self._create_controls()
@@ -60,11 +78,16 @@ class ImageOCRApp:
     def _create_image_area(self):
         """Create the image display area"""
         # Create drop zone with modern styling
-        self.drop_frame = ttk.LabelFrame(self.left_frame, text="Image Preview")
-        self.drop_frame.pack(fill=tk.BOTH, expand=True)
+        self.drop_frame = ttk.LabelFrame(self.left_frame, 
+                                       text="Image Preview", 
+                                       style="Card.TLabelframe")
+        self.drop_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Create canvas with modern background
-        self.canvas = tk.Canvas(self.drop_frame, highlightthickness=0, bg="#ffffff")
+        self.canvas = tk.Canvas(self.drop_frame, 
+                              highlightthickness=0, 
+                              bg=self.colors['card_bg'],
+                              relief="flat")
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Instructions label with modern font
@@ -74,24 +97,30 @@ class ImageOCRApp:
         self.label.place(relx=0.5, rely=0.5, anchor='center')
         
         # Status label
-        self.status_label = ttk.Label(self.left_frame, text="")
+        self.status_label = ttk.Label(self.left_frame, 
+                                    text="",
+                                    style="TLabel")
         self.status_label.pack(pady=10)
     
     def _create_controls(self):
         """Create the control panel"""
         # OCR controls frame
-        self.ocr_controls = ttk.LabelFrame(self.right_frame, text="OCR Controls")
-        self.ocr_controls.pack(fill=tk.X, pady=(0, 15))
+        self.ocr_controls = ttk.LabelFrame(self.right_frame, 
+                                         text="OCR Controls",
+                                         style="Card.TLabelframe")
+        self.ocr_controls.pack(fill=tk.X, pady=(0, 15), padx=5)
         
         # Add padding frame
-        control_padding = ttk.Frame(self.ocr_controls)
-        control_padding.pack(fill=tk.X, padx=10, pady=10)
+        control_padding = ttk.Frame(self.ocr_controls, style="Card.TFrame")
+        control_padding.pack(fill=tk.X, padx=15, pady=15)
         
         # Language selection with better layout
-        self.lang_frame = ttk.Frame(control_padding)
-        self.lang_frame.pack(fill=tk.X, pady=(0, 10))
+        self.lang_frame = ttk.Frame(control_padding, style="Card.TFrame")
+        self.lang_frame.pack(fill=tk.X, pady=(0, 15))
         
-        ttk.Label(self.lang_frame, text="Language:").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(self.lang_frame, 
+                 text="Language:", 
+                 style="TLabel").pack(side=tk.LEFT, padx=(0, 10))
         
         # Language combobox with modern styling
         self.selected_lang = tk.StringVar(value='eng+tha')
@@ -106,22 +135,25 @@ class ImageOCRApp:
         self.preprocess_var = tk.BooleanVar(value=True)
         self.preprocess_check = ttk.Checkbutton(control_padding, 
                                               text="Preprocess Image",
-                                              variable=self.preprocess_var)
-        self.preprocess_check.pack(fill=tk.X, pady=(0, 10))
+                                              variable=self.preprocess_var,
+                                              style="TCheckbutton")
+        self.preprocess_check.pack(fill=tk.X, pady=(0, 15))
         
         # Buttons frame with better spacing
-        self.button_frame = ttk.Frame(control_padding)
+        self.button_frame = ttk.Frame(control_padding, style="Card.TFrame")
         self.button_frame.pack(fill=tk.X, pady=(5, 0))
         
         # OCR and Clear buttons with modern styling
         self.ocr_button = ttk.Button(self.button_frame, 
                                    text="Extract Text (OCR)",
-                                   command=self.perform_ocr)
+                                   command=self.perform_ocr,
+                                   style="Rounded.TButton")
         self.ocr_button.pack(side=tk.LEFT, padx=(0, 5), fill=tk.X, expand=True)
         
         self.clear_button = ttk.Button(self.button_frame,
                                      text="Clear Image",
-                                     command=self.clear_image)
+                                     command=self.clear_image,
+                                     style="Rounded.TButton")
         self.clear_button.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
         
         # Disable buttons initially
@@ -130,16 +162,22 @@ class ImageOCRApp:
     
     def _create_text_area(self):
         """Create the text display area"""
-        self.text_frame = ttk.LabelFrame(self.right_frame, text="Extracted Text")
-        self.text_frame.pack(fill=tk.BOTH, expand=True)
+        self.text_frame = ttk.LabelFrame(self.right_frame, 
+                                       text="Extracted Text",
+                                       style="Card.TLabelframe")
+        self.text_frame.pack(fill=tk.BOTH, expand=True, padx=5)
+        
+        # Create a frame for the text area with padding
+        text_container = ttk.Frame(self.text_frame, style="Card.TFrame")
+        text_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Text area with modern styling
         self.text_area = scrolledtext.ScrolledText(
-            self.text_frame,
+            text_container,
             wrap=tk.WORD,
             **self.text_config
         )
-        self.text_area.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.text_area.pack(fill=tk.BOTH, expand=True)
     
     def _init_variables(self):
         """Initialize instance variables"""
